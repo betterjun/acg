@@ -1,0 +1,52 @@
+package:
+  name: tpkg
+
+type: # 这里的type都是外部引用的代码库，不会生成代码
+  -
+    type: Decimal # 在定义字段时用到
+    goType: decimal.Decimal
+    goImport: github.com/shopspring/decimal # 生成go code时用到
+
+dict: # 这里的dict都是在本文件内用到，不会生成代码
+  - id: {type: int, comment: 唯一标识, primary: true, notnull: true, unique: true, autoIncrement: true, default: 0}
+  - created_at: {type: int64, comment: 创建时间, default: NULL}
+  - update_at: {type: int64, comment: 更新时间, default: NULL}
+  - deleted_at: {type: int64, comment: 删除时间, default: NULL}
+  - name: {type: string, comment: 名称, notnull: true, default: ""}
+# column: name type comment default primary notnull unique auto_increment
+# index: index name, field name list, comment, type[primary/index/unique]
+
+model:
+  #  dbengine: gorm/sqlx
+  -
+    name: user
+    comment: model desc
+    column:
+      - id: id # 字符串定义方式，从字典找
+      - created_at: created_at
+      - name: name
+      - age: {type: int, comment: 年龄} # 对象定义方式
+      - sex: [int, 性别, 1, true, false, true, false] # 数组定义方式，属性有顺序，最少1个属性，最多支持7个属性，多的被忽略
+      - passwd: [string, 密码, "", false, false, false, false] # 最少1个属性，最多支持7个属性，多的被忽略
+      - introduction: {type: string, comment: 介绍, default: ""}
+      - money: {type: Decimal, comment: 余额, default: ""}
+    index:
+      - idx_name: [[name], 姓名索引, index]
+      - idx_age: {keys: [age], comment: 年龄索引, type: unique}
+    query:
+      - name: queryById
+        comment: 按id查询
+        sql: select * from user where id=$id
+        inputs: {id: user.id}
+        outputs: {id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}
+      - name: queryByName
+        comment: 按姓名模糊查询
+        sql: select * from user where name like $name limit $size offset $offset
+        withPager: true
+        inputs: {name: user.name, offset: [int, 偏移量], size: [int, 分页大小]}
+        outputs: {id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}
+      - name: queryByAge
+        comment: 按年龄查询
+        sql: select * from user where age=$age limit $size offset $offset
+        inputs: {age: user.age, offset: [int, 偏移量], size: [int, 分页大小]}
+        outputs: {count: [int, 总数], offset: [int, 偏移量], size: [int, 分页大小], result: [{id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}]}

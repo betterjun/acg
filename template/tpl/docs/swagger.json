@@ -1,0 +1,57 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "pub开头的api不需要登录就可访问，pri开头的需要登录才能访问，访问pri开头的路由时，需要把登录返回的token放到header X-Token中，服务端会做鉴权。返回结果为json格式，包含字段code，data，msg三个字段 , 成功时，code为0，data有数据；失败时，code不为0，msg为错误消息。",
+        "title": "智谷星图考试系统 API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "svinsight API Support",
+            "url": "http://www.svinsight.com",
+            "email": "svinsight@svinsight.com"
+        },
+        "license": {
+            "name": "private",
+            "url": "http://www.svinsight.com/licenses/private.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:16888",
+    "basePath": "/",
+    "paths": {
+        "/v1/pub/servertime": {
+            "get": {
+                "description": "获取服务器时间",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "获取服务器时间",
+                "operationId": "GetServerTime",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/params.ServerTimeRsp"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "params.ServerTimeRsp": {
+            "type": "object",
+            "properties": {
+                "server_time": {
+                    "description": "服务器试卷",
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}
