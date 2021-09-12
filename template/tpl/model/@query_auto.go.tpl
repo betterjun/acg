@@ -18,8 +18,6 @@ type {{ $tableName }}Context struct {
 }
 
 
-
-
 {{define "field.tmpl"}}
     {{- if eq .FieldType 0 -}}
         {{- formatName .Name }} {{.Type}} `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
@@ -44,38 +42,127 @@ type {{ $tableName }}Context struct {
 {{ end}}
 
 
+{{$inStructName := formatName .CurrentQuery.In.Name }}
+{{$outStructName := formatName .CurrentQuery.Out.Name }}
 
-type {{ .CurrentQuery.In.Name }} struct {
+type {{ $inStructName }} struct {
 {{range $k, $v := .CurrentQuery.In.Columns -}}
     {{- template "field.tmpl" $v -}}
 {{- end -}}
 }
 
+{{ if eq .CurrentQuery.Out.Array false }}
 
-type {{ .CurrentQuery.Out.Name }} struct {
-	Count  int `json:"count" form:"count"`   // 总数
-	Offset int `json:"offset" form:"offset"` // 偏移量
-	Size   int `json:"size" form:"size"`     // 分页大小
-	Result []struct {     // 结果数据
-{{range $k, $v := .CurrentQuery.Out.Columns -}}
-    {{- template "field.tmpl" $v -}}
-{{- end -}}
-    } `json:"result" form:"result"`
-}
+    {{ if eq .CurrentQuery.Pager false}}
+        type {{ $outStructName }} struct {
+            {{range $k, $v := .CurrentQuery.Out.Columns -}}
+                {{- template "field.tmpl" $v -}}
+            {{- end -}}
+        }
+
+        // {{ .CurrentQuery.Comment }}
+        func (q *{{ $tableName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
+
+            if f, ok := mm.({{ $tableName }}Interface); ok && f != nil {
+                return f.{{ $tableName }}_impl(db, in)
+            }
+
+            out = new({{ $outStructName }})
+            {{ $res := .CurrentQuery.FormatSQL }}
+            err = db.Raw("{{$res.SQL}}", {{- range $k, $v := $res.Names }}
+                                       in.{{ formatName $v }},
+                                       {{- end}}).Scan(out).Error
+
+            return
+        }
+
+    {{ else }}
+        type {{ $outStructName }}Data struct {
+            {{range $k, $v := .CurrentQuery.Out.Columns -}}
+                {{- if eq $v.Name "result" -}}
+                    {{range $k1, $v1 := $v.Children -}}
+                        {{- template "field.tmpl" $v1 -}}
+                    {{ end -}}
+                {{- end -}}
+            {{- end -}}
+        }
+
+        type {{ $outStructName }} struct {
+            {{range $k, $v := .CurrentQuery.Out.Columns -}}
+                {{ if eq $v.Name "result" }}
+                    {{- formatName $v.Name }} []{{ $outStructName }}Data `json:"{{$v.Name}}" form:"{{$v.Name}}"` // {{$v.Comment -}}
+                {{ else }}
+                    {{- template "field.tmpl" $v -}}
+                {{ end -}}
+            {{- end }}
+        }
 
 
+        // {{ .CurrentQuery.Comment }}
+        func (q *{{ $tableName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
 
+            if f, ok := mm.({{ $tableName }}Interface); ok && f != nil {
+                return f.{{ $tableName }}_impl(db, in)
+            }
+
+            out = new({{ $outStructName }})
+            out.Result = make([]{{ $outStructName }}Data,0)
+
+            {{ $res := .CurrentQuery.FormatSQL }}
+            err = db.Raw("{{$res.SQL}}", {{- range $k, $v := $res.Names }}
+                                       in.{{ formatName $v }},
+                                       {{- end}}).Scan(&out.Result).Error
+            if err !=nil {
+                return nil, err
+            }
+
+            {{ $res := .CurrentQuery.FormatCountSQL }}
+            err = db.Raw("{{$res.SQL}}", {{- range $k, $v := $res.Names }}
+                                       in.{{ formatName $v }},
+                                       {{- end}}).Count(&out.Count).Error
+
+            return
+        }
+
+    {{ end }}
+
+
+    type {{ $tableName }}Interface interface {
+        {{ $tableName }}_impl(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error)
+    }
+
+{{ else }}
+    type {{ $outStructName }} struct {
+    {{range $k, $v := .CurrentQuery.Out.Columns -}}
+        {{- template "field.tmpl" $v -}}
+    {{- end -}}
+    }
 
 // {{ .CurrentQuery.Comment }}
-func (q *{{ $tableName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ .CurrentQuery.In.Name }}) (out *{{ .CurrentQuery.Out.Name }}, err error) {
-    var mm interface{} = q
-    out =new({{ .CurrentQuery.Out.Name }})
+func (q *{{ $tableName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out []{{ $outStructName }}, err error) {
 
-{{ $res := .CurrentQuery.FormatSQL3 }}
+	if f, ok := mm.({{ $tableName }}Interface); ok && f != nil {
+		return f.{{ $tableName }}_impl(db, in)
+	}
+
+    out = make([]{{ $outStructName }},0)
+
+    {{ $res := .CurrentQuery.FormatSQL }}
     err = db.Raw("{{$res.SQL}}", {{- range $k, $v := $res.Names }}
                                in.{{ formatName $v }},
-                               {{- end}}).Scan(out).Error
+                               {{- end}}).Scan(&out).Error
+    if err !=nil {
+        return nil, err
+    }
 
-    return
+    return out, err
 }
+
+
+
+type {{ $tableName }}Interface interface {
+    {{ $tableName }}_impl(db *gorm.DB, in *{{ $inStructName }}) (out []{{ $outStructName }}, err error)
+}
+
+{{ end }}
 

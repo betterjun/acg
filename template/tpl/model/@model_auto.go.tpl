@@ -24,6 +24,7 @@ type {{ $tableName }} struct {
 }
 
 
+/*
 func Migrate{{ $tableName }}(db *gorm.DB) error {
 	err := db.AutoMigrate(&{{ $tableName }}{}).Error
 	if err!=nil {
@@ -49,6 +50,7 @@ func Migrate{{ $tableName }}(db *gorm.DB) error {
 {{end}}
 
 }
+*/
 
 func (m *{{ $tableName }}) TableName() string {
 	return "{{ .CurrentModel.Name }}"

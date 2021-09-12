@@ -297,6 +297,7 @@ func (pkgCfg *PackageCfg) parseOneQuery(columnDict ColumnDict, queryCfg *viper.V
 	query.Name = name
 	query.Comment = queryCfg.GetString("comment")
 	query.SQLstr = queryCfg.GetString("sql")
+	query.Pager = queryCfg.GetBool("pager")
 
 	dataCfg := queryCfg.Get("inputs")
 	if dataCfg == nil {
@@ -323,10 +324,130 @@ func (pkgCfg *PackageCfg) parseOneQuery(columnDict ColumnDict, queryCfg *viper.V
 		return err
 	}
 
+	enablePagerFields(query)
+
 	pkgCfg.Query = append(pkgCfg.Query, query)
 	pkgCfg.QueryMap[query.Name] = query
 
 	return err
+}
+
+func enablePagerFields(query *QueryCfg) (err error) {
+	/*
+		如果没启用pager，则直接返回
+		如果不是查询语句，则直接返回或报错
+		查看输入是否有limit、offset字段，没有则插入
+
+		如果输出是array，
+			构造新的输出，将原来的输出数组作为result字段，并增加count、limit、offset字段
+		如果输出是struct，
+			查看是否有count、limit、offset、result字段
+				如果都有，则不做处理
+				如果有部分，则报错
+				如果全都没有，则构造新的输出，把输出当作结构体，作为result字段，并增加count、limit、offset字段
+	*/
+
+	if !query.Pager {
+		return
+	}
+	sql := convertSpaces(strings.ToLower(query.SQLstr))
+	if strings.Index(sql, "select ") < 0 { // 不是查询语句
+		//return fmt.Errorf("%v output is not a select statement, ignore pager flag", query.Name)
+		query.Pager = false
+		fmt.Printf("%v output is not a select statement, ignore pager flag\n", query.Name)
+		return
+	}
+
+	// 处理输入
+	if _, ok := query.In.ColumnDict["limit"]; !ok {
+		column := &ColumnCfg{
+			Name:    "limit",
+			Type:    "int",
+			Comment: "分页大小，自动添加",
+		}
+
+		query.In.Columns = append(query.In.Columns, column)
+		query.In.ColumnDict["limit"] = column
+	}
+	if _, ok := query.In.ColumnDict["offset"]; !ok {
+		column := &ColumnCfg{
+			Name:    "offset",
+			Type:    "int",
+			Comment: "偏移量，自动添加",
+		}
+
+		query.In.Columns = append(query.In.Columns, column)
+		query.In.ColumnDict["offset"] = column
+	}
+
+	// 处理输出
+	if query.Out.Array {
+		return replaceOutStruct(query)
+	} else {
+		_, ok1 := query.Out.ColumnDict["limit"]
+		_, ok2 := query.Out.ColumnDict["offset"]
+		_, ok3 := query.Out.ColumnDict["count"]
+		_, ok4 := query.Out.ColumnDict["result"]
+
+		if ok1 && ok2 && ok3 && ok4 { // 全都有，则不做处理
+			return
+		}
+
+		//if !(ok1 && ok2 && ok3 && ok4) && (ok1 || ok2 || ok3 || ok4) { // 仅有部分
+		if ok1 || ok2 || ok3 || ok4 { // 仅有部分
+			return fmt.Errorf("%v output struct has some pager fields", query.Name)
+		}
+
+		// 全都没有
+		return replaceOutStruct(query)
+	}
+	return
+}
+
+func replaceOutStruct(query *QueryCfg) (err error) {
+	// 结构体配置
+	newOut := NewStructCfg()
+	newOut.Name = query.Out.Name
+	newOut.Array = false
+
+	column := &ColumnCfg{
+		Name:    "limit",
+		Type:    "int",
+		Comment: "分页大小，自动添加",
+	}
+	newOut.Columns = append(newOut.Columns, column)
+	newOut.ColumnDict["limit"] = column
+
+	column = &ColumnCfg{
+		Name:    "offset",
+		Type:    "int",
+		Comment: "偏移量，自动添加",
+	}
+	newOut.Columns = append(newOut.Columns, column)
+	newOut.ColumnDict["offset"] = column
+
+	column = &ColumnCfg{
+		Name:    "count",
+		Type:    "int64",
+		Comment: "总数，自动添加",
+	}
+	newOut.Columns = append(newOut.Columns, column)
+	newOut.ColumnDict["count"] = column
+
+	columnArr := &ColumnCfg{
+		Name:      "result",
+		Comment:   "输出数据，自动添加",
+		FieldType: 1,
+		Children:  make(map[string]*ColumnCfg),
+	}
+	for _, v := range query.Out.Columns {
+		columnArr.Children[v.Name] = v
+	}
+	newOut.Columns = append(newOut.Columns, columnArr)
+	newOut.ColumnDict["result"] = columnArr
+
+	query.Out = newOut
+	return
 }
 
 func parseQueryStruct(structCfg *StructCfg, typeDict TypeDict, columnDict ColumnDict, dataCfg interface{}) (err error) {
@@ -357,6 +478,18 @@ func parseQueryStruct(structCfg *StructCfg, typeDict TypeDict, columnDict Column
 			}
 		}
 	case []interface{}: // [{age: ta.age, count: [int, 总数], objName: {name: tb.name}, data: [{id: ta.id, sex: [int, 性别]}]}]
+		rootColumn := new(ColumnCfg)
+		err = parseStructFieldCfgArr(typeDict, columnDict, rootColumn, dataCfg.([]interface{}))
+		if err != nil {
+			return err
+		}
+		if rootColumn.Children != nil {
+			structCfg.ColumnDict = rootColumn.Children
+			for _, v := range rootColumn.Children {
+				structCfg.Columns = append(structCfg.Columns, v)
+			}
+		}
+		structCfg.Array = true
 
 	default:
 		return fmt.Errorf("parseQueryStruct format error: not a struct\n")

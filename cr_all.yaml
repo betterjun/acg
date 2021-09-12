@@ -26,14 +26,29 @@ model:
       - created_at: created_at
       - name: name
       - age: {type: int, comment: 年龄} # 对象定义方式
-      - sex: [int, 性别, 1, true, false, true, false] # 数组定义方式，属性有顺序，最少1个属性，最多支持7个属性，多的被忽略
+      - sex: [int, 性别, 1, false, false, false, false] # 数组定义方式，属性有顺序，最少1个属性，最多支持7个属性，多的被忽略
       - passwd: [string, 密码, "", false, false, false, false] # 最少1个属性，最多支持7个属性，多的被忽略
       - introduction: {type: string, comment: 介绍, default: ""}
-      - money: {type: Decimal, comment: 余额, default: ""}
+      - money: {type: float64, comment: 余额, default: ""}
     index:
       - idx_name: [[name], 姓名索引, index]
       - idx_age: {keys: [age], comment: 年龄索引, type: unique}
     query:
+      - name: createUser
+        comment: 新增
+        sql: insert into user(name,age,sex,introduction,money) value($name,$age,$sex,$introduction,$money)
+        inputs: {id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}
+        outputs: {id: user.id}
+      - name: deleteUser
+        comment: 删除
+        sql: delete from user where id=$id
+        inputs: {id: user.id}
+        outputs: {}
+      - name: updateUser
+        comment: 修改
+        sql: update user set name=$name, age=$age, sex=$sex, introduction=$introduction, money=$money where id=$id
+        inputs: {id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}
+        outputs: {}
       - name: queryById
         comment: 按id查询
         sql: select * from user where id=$id
@@ -41,12 +56,35 @@ model:
         outputs: {id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}
       - name: queryByName
         comment: 按姓名模糊查询
-        sql: select * from user where name like $name limit $size offset $offset
-        withPager: true
-        inputs: {name: user.name, offset: [int, 偏移量], size: [int, 分页大小]}
-        outputs: {id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}
+        sql: select * from user where name like $name limit $limit offset $offset
+        pager: true
+        inputs: {name: user.name, offset: [int, 偏移量], limit: [int, 分页大小]}
+        outputs: [{id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}]
+      - name: queryByNameWithPager
+        comment: 按姓名模糊查询
+        sql: select * from user where name like $name limit $limit offset $offset
+        pager: true
+        inputs: {name: user.name}
+        outputs: [{id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}]
+      - name: queryByNameWithoutPager
+        comment: 按姓名模糊查询
+        sql: select * from user where name like $name
+        inputs: {name: user.name}
+        outputs: [{id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}]
       - name: queryByAge
         comment: 按年龄查询
-        sql: select * from user where age=$age limit $size offset $offset
-        inputs: {age: user.age, offset: [int, 偏移量], size: [int, 分页大小]}
-        outputs: {count: [int, 总数], offset: [int, 偏移量], size: [int, 分页大小], result: [{id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}]}
+        sql: select * from user where age=$age limit $limit offset $offset
+        inputs: {age: user.age, offset: [int, 偏移量], limit: [int, 分页大小]}
+        outputs: {count2: [int, 总数], offset2: [int, 偏移量], limit2: [int, 分页大小], list: [{id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}]}
+handler:
+  -
+    name: queryUser
+    comment: test route
+    route: /v1/test
+    ref: model.query.queryByID
+  - name: queryUser2
+    comment: test route2
+    route: /v1/test2
+    sql: select * from user where age=$age limit $limit offset $offset
+    inputs: {name: user.name, offset: [int, 偏移量], limit: [int, 分页大小]}
+    outputs: [{id: user.id, name: user.name, age: user.age, sex: user.sex, introduction: user.introduction, money: user.money}]

@@ -16,6 +16,57 @@ func Setup() {
 	sqlDB.SetMaxOpenConns(100)
 
 	dbh := db.GetDB()
+
+	{
+        user := &User{}
+        user.Name = "zj"
+        err := user.Create(dbh)
+        if err != nil {
+            panic(err)
+        }
+
+	    // 增加
+        cuc := new(CreateUserContext)
+        cucout, err := cuc.CreateUser(dbh, &CreateUserIN{
+        	Name        :"zj",
+        	Age         :30,
+        	Sex         :1,
+        	Introduction:"intro",
+        	Money       :2,
+        })
+        if err!=nil {
+            panic(err)
+        }
+
+        // 修改
+        uuc := new(UpdateUserContext)
+        uucout, err := uuc.UpdateUser(dbh, &UpdateUserIN{
+        	Name        :"zj2",
+        	Age         :10,
+        	Sex         :0,
+        	Introduction:"简介",
+        	Money       :3,
+        	ID          :user.ID,
+        })
+        if err!=nil {
+            panic(err)
+        }
+
+        // 删除
+        duc := new(DeleteUserContext)
+        ducout, err := duc.DeleteUser(dbh, &DeleteUserIN{
+        	ID          :user.ID,
+        })
+        if err!=nil {
+            panic(err)
+        }
+
+        fmt.Println(cucout, uucout, ducout)
+	}
+
+
+
+
 	user := &User{}
 	err := user.Create(dbh)
 	if err != nil {
