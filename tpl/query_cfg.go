@@ -16,6 +16,37 @@ type QueryCfg struct {
 	Out     *StructCfg `yaml:"outputs,omitempty"` // 查询的输出参数
 }
 
+// 获取goimports导入数组
+func (q *QueryCfg) GoImportsArray(imports []string) []string {
+	if imports == nil {
+		imports = make([]string, 0)
+	}
+
+	importsMap := q.goImportsMap(nil)
+
+	for k, _ := range importsMap {
+		imports = append(imports, k)
+	}
+
+	return imports
+}
+
+// 获取goimports导入字符串，用换行符分割
+func (q *QueryCfg) GoImportsString() string {
+	imports := make([]string, 0)
+	for k, _ := range q.goImportsMap(nil) {
+		imports = append(imports, k)
+	}
+
+	return strings.Join(imports, "\n")
+}
+
+// 获取goimports导入数组
+func (q *QueryCfg) goImportsMap(imports map[string]bool) map[string]bool {
+	importsMap := q.In.goImportsMap(imports)
+	return q.Out.goImportsMap(importsMap)
+}
+
 // query按查询名进行组织
 type QueryMap map[string]*QueryCfg
 

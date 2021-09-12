@@ -1,5 +1,7 @@
 package tpl
 
+import "strings"
+
 // 字段的数据字典
 type ColumnDict map[string]*ColumnCfg
 
@@ -38,4 +40,59 @@ func NewColumnCfg() *ColumnCfg {
 	return &ColumnCfg{
 		Children: make(map[string]*ColumnCfg),
 	}
+}
+
+// 获取类型，优先使用GoType，次选Type
+func (c *ColumnCfg) GoTypeString() string {
+	if len(c.GoType) > 0 {
+		return c.GoType
+	}
+
+	return c.Type
+}
+
+// 获取goimports导入数组
+func (c *ColumnCfg) GoImportsArray(imports []string) []string {
+	if imports == nil {
+		imports = make([]string, 0)
+	}
+
+	for k, _ := range c.goImportsMap(nil) {
+		imports = append(imports, k)
+	}
+
+	return imports
+}
+
+// 获取goimports导入字符串，用换行符分割
+func (c *ColumnCfg) GoImportsString() string {
+	imports := make([]string, 0)
+	for k, _ := range c.goImportsMap(nil) {
+		imports = append(imports, k)
+	}
+
+	return strings.Join(imports, "\n")
+}
+
+// 获取goimports导入数组
+func (c *ColumnCfg) goImportsMap(imports map[string]bool) map[string]bool {
+	if imports == nil {
+		imports = make(map[string]bool, 0)
+	}
+	switch c.FieldType {
+	case 0:
+		if len(c.GoImport) > 0 {
+			if _, ok := imports[c.GoImport]; !ok {
+				imports[c.GoImport] = true
+			}
+		}
+	case 1:
+		fallthrough
+	case 2:
+		for _, v := range c.Children {
+			imports = v.goImportsMap(imports)
+		}
+	}
+
+	return imports
 }

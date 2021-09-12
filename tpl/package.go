@@ -17,8 +17,6 @@ type PackageCfg struct {
 	ColumnDict ColumnDict   `yaml:"-"`     // 字段字典
 	Model      []*ModelCfg  `yaml:"model"` // 包中的model配置
 	ModelMap   ModelMap     `yaml:"-"`     // 包中的model配置
-	Query      []*QueryCfg  `yaml:"query"` // 包中的查询配置
-	QueryMap   QueryMap     `yaml:"-"`     // 包中的查询配置
 
 	CurrentModel *ModelCfg `yaml:"-"` // 包中的查询配置
 	CurrentQuery *QueryCfg `yaml:"-"` // 包中的查询配置
@@ -31,7 +29,6 @@ func NewPackageCfg() *PackageCfg {
 		Column:     make([]*ColumnCfg, 0),
 		ColumnDict: make(map[string]*ColumnCfg),
 		ModelMap:   make(map[string]*ModelCfg),
-		QueryMap:   make(map[string]*QueryCfg),
 	}
 }
 
@@ -277,7 +274,7 @@ func (pkgCfg *PackageCfg) parseQueries(model *ModelCfg, queryCfg *viper.Viper) (
 			break
 		}
 
-		err = pkgCfg.parseOneQuery(mergedDict, queryCfg.Sub(key))
+		err = pkgCfg.parseOneQuery(model, mergedDict, queryCfg.Sub(key))
 		if err != nil {
 			return err
 		}
@@ -287,7 +284,7 @@ func (pkgCfg *PackageCfg) parseQueries(model *ModelCfg, queryCfg *viper.Viper) (
 }
 
 // 解析query
-func (pkgCfg *PackageCfg) parseOneQuery(columnDict ColumnDict, queryCfg *viper.Viper) (err error) {
+func (pkgCfg *PackageCfg) parseOneQuery(model *ModelCfg, columnDict ColumnDict, queryCfg *viper.Viper) (err error) {
 	name := queryCfg.GetString("name")
 	if len(name) == 0 {
 		return fmt.Errorf("parseOneQuery no query name found")
@@ -326,8 +323,8 @@ func (pkgCfg *PackageCfg) parseOneQuery(columnDict ColumnDict, queryCfg *viper.V
 
 	enablePagerFields(query)
 
-	pkgCfg.Query = append(pkgCfg.Query, query)
-	pkgCfg.QueryMap[query.Name] = query
+	model.Query = append(model.Query, query)
+	model.QueryMap[query.Name] = query
 
 	return err
 }

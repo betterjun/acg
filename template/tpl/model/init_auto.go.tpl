@@ -3,6 +3,7 @@ package model
 import "{{ .Name }}/pkg/db"
 import "fmt"
 
+// 重新生成测试代码
 func Setup() {
 	{{range $, $v := .Model}}
         {{- with  $v -}}
@@ -26,7 +27,7 @@ func Setup() {
         }
 
 	    // 增加
-        cuc := new(CreateUserContext)
+        cuc := new(UserContext)
         cucout, err := cuc.CreateUser(dbh, &CreateUserIN{
         	Name        :"zj",
         	Age         :30,
@@ -39,8 +40,7 @@ func Setup() {
         }
 
         // 修改
-        uuc := new(UpdateUserContext)
-        uucout, err := uuc.UpdateUser(dbh, &UpdateUserIN{
+        uucout, err := cuc.UpdateUser(dbh, &UpdateUserIN{
         	Name        :"zj2",
         	Age         :10,
         	Sex         :0,
@@ -53,8 +53,7 @@ func Setup() {
         }
 
         // 删除
-        duc := new(DeleteUserContext)
-        ducout, err := duc.DeleteUser(dbh, &DeleteUserIN{
+        ducout, err := cuc.DeleteUser(dbh, &DeleteUserIN{
         	ID          :user.ID,
         })
         if err!=nil {

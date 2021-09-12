@@ -125,7 +125,7 @@ func runInitCmd(cmd *cobra.Command, args []string) {
 		}},
 	})
 
-	pkg.Query = append(pkg.Query, &tpl.QueryCfg{
+	pkg.Model[0].Query = append(pkg.Model[0].Query, &tpl.QueryCfg{
 		Name:    "queryUserInfo",
 		Comment: "query user info",
 		SQLstr:  "select * from user where id=$id",

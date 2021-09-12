@@ -7,6 +7,7 @@ package model
 
 import (
 	"gorm.io/gorm"
+	{{ .CurrentModel.GoImportsString }}
 )
 
 
@@ -18,9 +19,14 @@ type {{ $tableName }} struct {
     {{- with  $v -}}
 
     {{$le:= len .Default}}
-    {{ formatName .Name}} {{.Type}}  `json:"{{.Name}}" form:"{{.Name}}" gorm:"{{.Name}} {{- if .Primary -}} ;primary {{- end -}}   {{- if .NotNull -}} ;notnull {{- end -}}   {{- if .Unique -}} ;unique {{- end -}} {{- if gt $le 0 -}} ;default= {{- .Default -}} {{- end -}}"` // {{ .Comment -}}
+    {{ formatName .Name}} {{.GoTypeString}}  `json:"{{.Name}}" form:"{{.Name}}" gorm:"{{.Name}} {{- if .Primary -}} ;primary {{- end -}}   {{- if .NotNull -}} ;notnull {{- end -}}   {{- if .Unique -}} ;unique {{- end -}} {{- if gt $le 0 -}} ;default= {{- .Default -}} {{- end -}}"` // {{ .Comment -}}
     {{- end -}}
 {{end}}
+}
+
+// {{ .CurrentModel.Name }}查询上下文
+type {{ $tableName }}Context struct {
+
 }
 
 
@@ -86,7 +92,7 @@ func (m *{{ $tableName }}) Update(db *gorm.DB) error {
 
 {{range $k, $v := .CurrentModel.Columns}}
     {{- with  $v }}
-func (m *{{ $tableName }}) FindBy{{formatName .Name}}(db *gorm.DB, {{formatName .Name}} {{.Type}}) (ret *{{ $tableName }}, err error) {
+func (m *{{ $tableName }}) FindBy{{formatName .Name}}(db *gorm.DB, {{formatName .Name}} {{.GoTypeString}}) (ret *{{ $tableName }}, err error) {
     var mm interface{} = m
     /*
 	if f, ok := mm.({{$tableName}}FindBy{{formatName .Name}}); ok && !isNil(f) {

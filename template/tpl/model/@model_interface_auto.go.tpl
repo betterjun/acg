@@ -17,7 +17,7 @@ import (
 {{range $k, $v := .CurrentModel.Columns}}
     {{- with  $v }}
 type {{$tableName}}FindBy{{formatName .Name}} interface {
-    {{ $tableName }}FindBy{{formatName .Name}}(db *gorm.DB, {{formatName .Name}} {{.Type}}) (ret *{{ $tableName }}, err error)
+    {{ $tableName }}FindBy{{formatName .Name}}(db *gorm.DB, {{formatName .Name}} {{.GoTypeString}}) (ret *{{ $tableName }}, err error)
 }
     {{- end}}
 {{end}}

@@ -7,20 +7,18 @@ package model
 
 import (
 	"gorm.io/gorm"
+	{{ .CurrentQuery.GoImportsString }}
 )
 
 
+{{$modelName := formatName .CurrentModel.Name }}
 {{$tableName := formatName .CurrentQuery.Name }}
 
-// {{ .CurrentQuery.Comment }}
-type {{ $tableName }}Context struct {
-
-}
 
 
 {{define "field.tmpl"}}
     {{- if eq .FieldType 0 -}}
-        {{- formatName .Name }} {{.Type}} `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
+        {{- formatName .Name }} {{.GoTypeString}} `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
     {{- else if eq .FieldType 1 -}}
         {{$lt := len .Type }}
         {{- if eq $lt 0 -}}
@@ -30,7 +28,7 @@ type {{ $tableName }}Context struct {
                 {{- end -}}
             } `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
         {{- else -}}
-             {{- formatName .Name }} []{{.Type}} `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
+             {{- formatName .Name }} []{{.GoTypeString}} `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
         {{- end -}}
     {{- else if eq .FieldType 2 -}}
         {{- formatName .Name }} []struct{
@@ -61,8 +59,8 @@ type {{ $inStructName }} struct {
         }
 
         // {{ .CurrentQuery.Comment }}
-        func (q *{{ $tableName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
-
+        func (q *{{ $modelName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
+            var mm interface{} = q
             if f, ok := mm.({{ $tableName }}Interface); ok && f != nil {
                 return f.{{ $tableName }}_impl(db, in)
             }
@@ -99,8 +97,8 @@ type {{ $inStructName }} struct {
 
 
         // {{ .CurrentQuery.Comment }}
-        func (q *{{ $tableName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
-
+        func (q *{{ $modelName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
+            var mm interface{} = q
             if f, ok := mm.({{ $tableName }}Interface); ok && f != nil {
                 return f.{{ $tableName }}_impl(db, in)
             }
@@ -139,8 +137,8 @@ type {{ $inStructName }} struct {
     }
 
 // {{ .CurrentQuery.Comment }}
-func (q *{{ $tableName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out []{{ $outStructName }}, err error) {
-
+func (q *{{ $modelName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out []{{ $outStructName }}, err error) {
+    var mm interface{} = q
 	if f, ok := mm.({{ $tableName }}Interface); ok && f != nil {
 		return f.{{ $tableName }}_impl(db, in)
 	}

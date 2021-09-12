@@ -217,19 +217,19 @@ func generateCode(cfgFile string, fm *FileMap, outPath string) {
 			if err != nil {
 				fmt.Printf("模板%v生成%v失败，错误:%v\n", k, outFile, err)
 			}
-		}
-	}
 
-	// query模板文件
-	for k, _ := range fm.QueryTemplate {
-		for _, q := range pkg.Query {
-			outFile := strings.Replace(strings.Replace(removeFirstDir(k), ".tpl", "", -1), "@query", q.Name, -1)
-			outFile = path.Join(outPath, outFile)
-			createDstDir(outFile)
-			pkg.CurrentQuery = q
-			err := tpl.GenerateTemplate(k, outFile, pkg)
-			if err != nil {
-				fmt.Printf("模板%v生成%v失败，错误:%v\n", k, outFile, err)
+			// query模板文件
+			for k, _ := range fm.QueryTemplate {
+				for _, q := range m.Query {
+					queryFile := strings.Replace(strings.Replace(removeFirstDir(k), ".tpl", "", -1), "@query", fmt.Sprintf("%v_%v", m.Name, q.Name), -1)
+					queryFile = path.Join(outPath, queryFile)
+					createDstDir(queryFile)
+					pkg.CurrentQuery = q
+					err := tpl.GenerateTemplate(k, queryFile, pkg)
+					if err != nil {
+						fmt.Printf("模板%v生成%v失败，错误:%v\n", k, queryFile, err)
+					}
+				}
 			}
 		}
 	}
@@ -333,7 +333,7 @@ func getTestPkg(cfgFile string) *tpl.PackageCfg {
 		}},
 	})
 
-	pkg.Query = append(pkg.Query, &tpl.QueryCfg{
+	pkg.Model[0].Query = append(pkg.Model[0].Query, &tpl.QueryCfg{
 		Name:    "queryUserInfo",
 		Comment: "query user info",
 		SQLstr:  "select * from user where id=$id",
