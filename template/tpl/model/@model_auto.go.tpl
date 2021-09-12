@@ -12,6 +12,8 @@ import (
 
 
 {{$tableName := formatName .CurrentModel.Name }}
+{{$ct := .CurrentModel }}
+
 
 // {{ .CurrentModel.Comment }}
 type {{ $tableName }} struct {
@@ -19,7 +21,9 @@ type {{ $tableName }} struct {
     {{- with  $v -}}
 
     {{$le:= len .Default}}
-    {{ formatName .Name}} {{.GoTypeString}}  `json:"{{.Name}}" form:"{{.Name}}" gorm:"{{.Name}} {{- if .Primary -}} ;primary {{- end -}}   {{- if .NotNull -}} ;notnull {{- end -}}   {{- if .Unique -}} ;unique {{- end -}} {{- if gt $le 0 -}} ;default= {{- .Default -}} {{- end -}}"` // {{ .Comment -}}
+    //{{ formatName .Name}} {{.GoTypeString}} `json:"{{.Name}}" form:"{{.Name}}" gorm:"{{.Name}} {{- if .Primary -}} ;primary {{- end -}}   {{- if .NotNull -}} ;notnull {{- end -}}   {{- if .Unique -}} ;unique {{- end -}} {{- if gt $le 0 -}} ;default= {{- .Default -}} {{- end -}}"` // {{ .Comment }}
+    //{{ formatName .Name}} {{.GoTypeString}} `json:"{{.Name}}" form:"{{.Name}}" gorm:"{{.GetGormTag}}{{$ct.GetGormIndexTag .Name}}"` // {{ .Comment }}
+    {{ formatName .Name}} {{.GoTypeString}} `json:"{{.Name}}" form:"{{.Name}}" gorm:"{{$ct.GetGormTag .Name}}"` // {{ .Comment -}}
     {{- end -}}
 {{end}}
 }

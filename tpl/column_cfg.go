@@ -1,6 +1,9 @@
 package tpl
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // 字段的数据字典
 type ColumnDict map[string]*ColumnCfg
@@ -95,4 +98,31 @@ func (c *ColumnCfg) goImportsMap(imports map[string]bool) map[string]bool {
 	}
 
 	return imports
+}
+
+// 获取当前字段的gorm tag
+func (c *ColumnCfg) GetGormTag() string {
+	//    gorm:"{{.Name}}
+	//   {{- if .Primary -}} ;primary {{- end -}}   {{- if .NotNull -}} ;notnull {{- end -}}
+	//  {{- if .Unique -}} ;unique {{- end -}} {{- if gt $le 0 -}} ;default= {{- .Default -}} {{- end -}}"
+
+	primaryStr := ""
+	if c.Primary {
+		primaryStr = "primary;"
+	}
+	notNullStr := ""
+	if c.NotNull {
+		notNullStr = "notnull;"
+	}
+	uniqueStr := ""
+	if c.Unique {
+		uniqueStr = "unique;"
+	}
+	defaultStr := ""
+	if len(c.Default) > 0 {
+		defaultStr = fmt.Sprintf("default=%v;", c.Default)
+	}
+
+	return fmt.Sprintf(`%v;%v%v%v%v`,
+		c.Name, primaryStr, notNullStr, uniqueStr, defaultStr)
 }

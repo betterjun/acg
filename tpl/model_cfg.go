@@ -1,6 +1,9 @@
 package tpl
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // model定义
 type ModelCfg struct {
@@ -39,6 +42,33 @@ func (m *ModelCfg) GoImportsArray() []string {
 func (m *ModelCfg) GoImportsString() string {
 	imports := m.GoImportsArray()
 	return strings.Join(imports, "\n")
+}
+
+// 获取当前字段的gorm tag
+func (m *ModelCfg) GetGormIndexTag(columnName string) string {
+	idx := ""
+	for _, v := range m.Indexes {
+		if v.hasKey(columnName) {
+			if v.Type == "unique" {
+				idx += fmt.Sprintf("uniqueIndex:%v;", v.Name)
+			} else {
+				idx += fmt.Sprintf("index:%v;", v.Name)
+			}
+		}
+	}
+
+	return idx
+}
+
+// 获取字段的gorm tag，包含本身以及索引的
+func (m *ModelCfg) GetGormTag(columnName string) string {
+	column := m.ColumnDict[columnName]
+	if column == nil {
+		panic(fmt.Errorf("column %v not existed in model %v", columnName, m.Name))
+	}
+	gormTag := column.GetGormTag()
+	gormTag += m.GetGormIndexTag(columnName)
+	return gormTag
 }
 
 // model按表名进行组织

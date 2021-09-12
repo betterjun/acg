@@ -12,13 +12,14 @@ import (
 
 
 {{$modelName := formatName .CurrentModel.Name }}
-{{$tableName := formatName .CurrentQuery.Name }}
-
+{{$queryName := formatName .CurrentQuery.Name }}
+{{$contextName := printf "%vContext" $modelName }}
+{{$queryInterface := printf "%v%v" $contextName $queryName}}
 
 
 {{define "field.tmpl"}}
     {{- if eq .FieldType 0 -}}
-        {{- formatName .Name }} {{.GoTypeString}} `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
+        {{- formatName .Name }} {{.GoTypeString}} `json:"{{.Name}}" form:"{{.Name}}" gorm:"{{.Name}}"` // {{.Comment -}}
     {{- else if eq .FieldType 1 -}}
         {{$lt := len .Type }}
         {{- if eq $lt 0 -}}
@@ -28,7 +29,7 @@ import (
                 {{- end -}}
             } `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
         {{- else -}}
-             {{- formatName .Name }} []{{.GoTypeString}} `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
+             {{- formatName .Name }} []{{.GoTypeString}} `json:"{{.Name}}" form:"{{.Name}}" gorm:"{{.Name}}"` // {{.Comment -}}
         {{- end -}}
     {{- else if eq .FieldType 2 -}}
         {{- formatName .Name }} []struct{
@@ -38,7 +39,6 @@ import (
         } `json:"{{.Name}}" form:"{{.Name}}"` // {{.Comment -}}
     {{- end }}
 {{ end}}
-
 
 {{$inStructName := formatName .CurrentQuery.In.Name }}
 {{$outStructName := formatName .CurrentQuery.Out.Name }}
@@ -59,10 +59,10 @@ type {{ $inStructName }} struct {
         }
 
         // {{ .CurrentQuery.Comment }}
-        func (q *{{ $modelName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
+        func (q *{{ $contextName }}) {{ $queryName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
             var mm interface{} = q
-            if f, ok := mm.({{ $tableName }}Interface); ok && f != nil {
-                return f.{{ $tableName }}_impl(db, in)
+            if f, ok := mm.({{ $queryInterface }}Interface); ok && f != nil {
+                return f.{{ $queryInterface }}Impl(db, in)
             }
 
             out = new({{ $outStructName }})
@@ -97,10 +97,10 @@ type {{ $inStructName }} struct {
 
 
         // {{ .CurrentQuery.Comment }}
-        func (q *{{ $modelName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
+        func (q *{{ $contextName }}) {{ $queryName }}(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error) {
             var mm interface{} = q
-            if f, ok := mm.({{ $tableName }}Interface); ok && f != nil {
-                return f.{{ $tableName }}_impl(db, in)
+            if f, ok := mm.({{ $queryInterface }}Interface); ok && f != nil {
+                return f.{{ $queryInterface }}Impl(db, in)
             }
 
             out = new({{ $outStructName }})
@@ -125,8 +125,8 @@ type {{ $inStructName }} struct {
     {{ end }}
 
 
-    type {{ $tableName }}Interface interface {
-        {{ $tableName }}_impl(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error)
+    type {{ $queryInterface }}Interface interface {
+        {{ $queryInterface }}Impl(db *gorm.DB, in *{{ $inStructName }}) (out *{{ $outStructName }}, err error)
     }
 
 {{ else }}
@@ -137,10 +137,10 @@ type {{ $inStructName }} struct {
     }
 
 // {{ .CurrentQuery.Comment }}
-func (q *{{ $modelName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStructName }}) (out []{{ $outStructName }}, err error) {
+func (q *{{ $contextName }}) {{ $queryName }}(db *gorm.DB, in *{{ $inStructName }}) (out []{{ $outStructName }}, err error) {
     var mm interface{} = q
-	if f, ok := mm.({{ $tableName }}Interface); ok && f != nil {
-		return f.{{ $tableName }}_impl(db, in)
+	if f, ok := mm.({{ $queryInterface }}Interface); ok && f != nil {
+		return f.{{ $queryInterface }}Impl(db, in)
 	}
 
     out = make([]{{ $outStructName }},0)
@@ -158,8 +158,8 @@ func (q *{{ $modelName }}Context) {{ $tableName }}(db *gorm.DB, in *{{ $inStruct
 
 
 
-type {{ $tableName }}Interface interface {
-    {{ $tableName }}_impl(db *gorm.DB, in *{{ $inStructName }}) (out []{{ $outStructName }}, err error)
+type {{ $queryInterface }}Interface interface {
+    {{ $queryInterface }}Impl(db *gorm.DB, in *{{ $inStructName }}) (out []{{ $outStructName }}, err error)
 }
 
 {{ end }}

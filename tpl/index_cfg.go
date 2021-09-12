@@ -7,3 +7,14 @@ type IndexCfg struct {
 	Comment string   // 说明
 	Type    string   `yaml:"type,omitempty"` // 索引类型, index或unique
 }
+
+// 查看index中是否包含特定字段
+func (i *IndexCfg) hasKey(columnName string) bool {
+	for _, v := range i.Keys {
+		if v == columnName {
+			return true
+		}
+	}
+
+	return false
+}
